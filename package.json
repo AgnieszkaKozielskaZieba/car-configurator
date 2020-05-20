@@ -1,5 +1,6 @@
 {
   "name": "car-configurator",
+  "homepage": "/car-configurator",
   "version": "0.1.0",
   "private": true,
   "dependencies": {

@@ -1,0 +1,26 @@
+.App {
+	font-family: "Share Tech Mono", monospace;
+	display: flex;
+	margin: 0 auto;
+	padding: 20px 0;
+	height: fit-content;
+	font-weight: 600;
+
+	width: 100%;
+
+	@media only screen and (min-width: 768px) {
+		width: 90%;
+	}
+
+	@media only screen and (min-width: 992px) {
+		width: 80%;
+	}
+
+	@media only screen and (min-width: 1200px) {
+		width: 70%;
+	}
+
+	@media only screen and (min-width: 1600px) {
+		width: 55%;
+	}
+}

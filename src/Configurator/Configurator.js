@@ -1,62 +1,166 @@
-import React, { Component } from "react";
+import React from "react";
+import "./Configurator.scss";
 import ConfiguratorButtons from "./ConfiguratorButtons/ConfiguratorButtons";
 
-class Configurator extends Component {
-	constructor(props) {
-		super(props);
-		this.state = {
-			models: [],
-			engines: [],
-			gearboxes: [],
-			colors: [],
-		};
+import { useDispatch, useSelector } from "react-redux";
+import { selectElement } from "../ConfigurationState/configurationSlice";
+import { selectConfiguration } from "../ConfigurationState/configurationSlice";
+
+function Configurator() {
+	const dispatch = useDispatch();
+	const configuration = useSelector(selectConfiguration);
+
+	const dispatchNewValue = (paramName, selectedElement) => {
+		dispatch(
+			selectElement({
+				paramName: paramName,
+				selectedElement: selectedElement,
+			})
+		);
+	};
+
+	let promises = [];
+	if (!configuration.fetchedData.dataReady) {
+		let models = [];
+		let engines = [];
+		let gearboxes = [];
+		let colors = [];
+		promises.push(
+			fetch("https://car-configurator-f3a80.firebaseio.com/models.json", {
+				method: "GET",
+			})
+				.then((res) => res.json())
+				.then((data) => {
+					for (let key in data) {
+						models.push(data[key]);
+					}
+				})
+		);
+
+		promises.push(
+			fetch(
+				"https://car-configurator-f3a80.firebaseio.com/engines.json",
+				{
+					method: "GET",
+				}
+			)
+				.then((res) => res.json())
+				.then((data) => {
+					for (let key in data) {
+						engines.push(data[key]);
+					}
+				})
+		);
+
+		promises.push(
+			fetch(
+				"https://car-configurator-f3a80.firebaseio.com/gearboxes.json",
+				{
+					method: "GET",
+				}
+			)
+				.then((res) => res.json())
+				.then((data) => {
+					for (let key in data) {
+						gearboxes.push(data[key]);
+					}
+				})
+		);
+
+		promises.push(
+			fetch("https://car-configurator-f3a80.firebaseio.com/colors.json", {
+				method: "GET",
+			})
+				.then((res) => res.json())
+				.then((data) => {
+					for (let key in data) {
+						colors.push(data[key]);
+					}
+				})
+		);
+
+		Promise.all(promises).then(() => {
+			dispatchNewValue("fetchedData", {
+				dataReady: true,
+				models: models,
+				engines: engines,
+				gearboxes: gearboxes,
+				colors: colors,
+			});
+		});
 	}
 
-	componentDidMount() {
-		let models = ["mA", "mB", "mC"];
-		let engines = ["eA", "eB", "eC"];
-		let gearboxes = ["gA", "gB"];
-		let colors = ["red", "green", "blue"];
-
-		this.setState({ models, engines, gearboxes, colors });
+	let enginesToDisplay = configuration.fetchedData.engines;
+	if (configuration.selectedModel.compatibleEngines) {
+		enginesToDisplay = configuration.fetchedData.engines.filter((e) =>
+			configuration.selectedModel.compatibleEngines.some(
+				(ce) => ce === e.name
+			)
+		);
 	}
-	render() {
+	let gearboxesToDisplay = configuration.fetchedData.gearboxes;
+	if (configuration.selectedEngine.compatibleGearboxes) {
+		gearboxesToDisplay = configuration.fetchedData.gearboxes.filter((g) =>
+			configuration.selectedEngine.compatibleGearboxes.some(
+				(cg) => cg === g.name
+			)
+		);
+	}
+
+	if (configuration.fetchedData.dataReady) {
 		return (
-			<div>
+			<div className="configurator">
 				<ConfiguratorButtons
-					data={this.state.models}
+					data={configuration.fetchedData.models}
 					paramName="models"
-					handleChange={(value) =>
-						this.props.handleChange("models", value)
-					}
+					selectedEl={configuration.selectedModel}
+					handleChange={(selectedElement) => {
+						if (
+							!selectedElement.compatibleEngines.some(
+								(e) => e === configuration.selectedEngine.name
+							)
+						) {
+							dispatchNewValue("selectedEngine", {});
+						}
+						dispatchNewValue("selectedModel", selectedElement);
+					}}
 				/>
-
 				<ConfiguratorButtons
-					data={this.state.engines}
+					data={enginesToDisplay}
 					paramName="engines"
-					handleChange={(value) =>
-						this.props.handleChange("engines", value)
-					}
+					selectedEl={configuration.selectedEngine}
+					handleChange={(selectedElement) => {
+						if (
+							!selectedElement.compatibleGearboxes.some(
+								(g) => g === configuration.selectedGearbox.name
+							)
+						) {
+							dispatchNewValue("selectedGearbox", {});
+						}
+						dispatchNewValue("selectedEngine", selectedElement);
+					}}
 				/>
-
 				<ConfiguratorButtons
-					data={this.state.gearboxes}
+					data={gearboxesToDisplay}
 					paramName="gearboxes"
-					handleChange={(value) =>
-						this.props.handleChange("gearboxes", value)
+					selectedEl={configuration.selectedGearbox}
+					handleChange={(selectedElement) =>
+						dispatchNewValue("selectedGearbox", selectedElement)
 					}
 				/>
-
 				<ConfiguratorButtons
-					data={this.state.colors}
+					data={configuration.fetchedData.colors}
 					paramName="colors"
-					handleChange={(value) =>
-						this.props.handleChange("colors", value)
+					selectedEl={configuration.selectedColour}
+					handleChange={(selectedElement) =>
+						dispatchNewValue("selectedColour", selectedElement)
 					}
 				/>
 			</div>
 		);
 	}
+
+	return <div>Loading...</div>;
 }
 
 export default Configurator;
